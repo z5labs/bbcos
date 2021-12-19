@@ -1,0 +1,721 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/z5labs/bbcos/butane/spec/fcos_v1.0.0.schema.json",
+  "title": "Fedora CoreOS Specification v1.0.0",
+  "description": "The Fedora CoreOS configuration is a YAML document conforming to the following specification, with italicized entries being optional",
+  "type": "object",
+  "properties": {
+    "variant": {
+      "description": "used to differentiate configs for different operating systems. Must be fcos for this specification.",
+      "type": "string",
+      "enum": [
+        "fcos"
+      ]
+    },
+    "version": {
+      "description": "the semantic version of the spec for this document. This document is for version 1.4.0 and generates Ignition configs with version 3.3.0.",
+      "type": "string",
+      "enum": [
+        "1.0.0"
+      ]
+    },
+    "ignition": {
+      "description": "metadata about the configuration itself.",
+      "type": "object",
+      "properties": {
+        "config": {
+          "description": "options related to the configuration.",
+          "type": "object",
+          "properties": {
+            "merge": {
+              "description": "a list of the configs to be merged to the current config.",
+              "type": "object",
+              "properties": {
+                "source": {
+                  "description": "the URL of the config. Supported schemes are http, https, s3, tftp, and data. Note: When using http, it is advisable to use the verification option to ensure the contents haven’t been modified.",
+                  "type": "string",
+                  "enum": [
+                    "http",
+                    "https",
+                    "s3",
+                    "tftp",
+                    "data"
+                  ]
+                },
+                "verification": {
+                  "description": "options related to the verification of the config.",
+                  "type": "object",
+                  "properties": {
+                    "hash": {
+                      "description": "the hash of the config, in the form <type>-<value> where type is sha512.",
+                      "type": "string",
+                      "pattern": "^sha512-.*$"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "source"
+              ]
+            },
+            "replace": {
+              "description": "the config that will replace the current.",
+              "type": "object",
+              "properties": {
+                "source": {
+                  "description": "the URL of the config. Supported schemes are http, https, s3, tftp, and data. Note: When using http, it is advisable to use the verification option to ensure the contents haven’t been modified.",
+                  "type": "string",
+                  "enum": [
+                    "http",
+                    "https",
+                    "s3",
+                    "tftp",
+                    "data"
+                  ]
+                },
+                "verification": {
+                  "description": "options related to the verification of the config.",
+                  "type": "object",
+                  "properties": {
+                    "hash": {
+                      "description": "the hash of the config, in the form <type>-<value> where type is sha512.",
+                      "type": "string",
+                      "pattern": "^sha512-.*$"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "source"
+              ]
+            }
+          }
+        },
+        "timeouts": {
+          "description": "options relating to http timeouts when fetching files over http or https.",
+          "type": "object",
+          "properties": {
+            "http_response_headers": {
+              "description": "the time to wait (in seconds) for the server’s response headers (but not the body) after making a request. 0 indicates no timeout. Default is 10 seconds.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "http_total": {
+              "description": "the time limit (in seconds) for the operation (connection, request, and response), including retries. 0 indicates no timeout. Default is 0.",
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "security": {
+          "description": "options relating to network security.",
+          "type": "object",
+          "properties": {
+            "tls": {
+              "description": "options relating to TLS when fetching resources over https.",
+              "type": "object",
+              "properties": {
+                "certificate_authorities": {
+                  "description": "the list of additional certificate authorities (in addition to the system authorities) to be used for TLS verification when fetching over https. All certificate authorities must have a unique source.",
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "description": "the URL of the certificate bundle (in PEM format). With Ignition ≥ 2.4.0, the bundle can contain multiple concatenated certificates. Supported schemes are http, https, s3, tftp, and data. Note: When using http, it is advisable to use the verification option to ensure the contents haven’t been modified.",
+                        "type": "string",
+                        "enum": [
+                          "http",
+                          "https",
+                          "s3",
+                          "tftp",
+                          "data"
+                        ]
+                      },
+                      "verification": {
+                        "description": "options related to the verification of the certificate.",
+                        "type": "object",
+                        "properties": {
+                          "hash": {
+                            "description": "the hash of the certificate, in the form <type>-<value> where type is sha512.",
+                            "type": "string",
+                            "pattern": "^sha512-.*$"
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "source"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "storage": {
+      "description": "describes the desired state of the system’s storage devices.",
+      "type": "object",
+      "properties": {
+        "disks": {
+          "description": "the list of disks to be configured and their options. Every entry must have a unique device.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "device": {
+                "description": "the absolute path to the device. Devices are typically referenced by the /dev/disk/by-* symlinks.",
+                "type": "string"
+              },
+              "wipe_table": {
+                "description": "whether or not the partition tables shall be wiped. When true, the partition tables are erased before any further manipulation. Otherwise, the existing entries are left intact.",
+                "type": "boolean"
+              },
+              "partitions": {
+                "description": "the list of partitions and their configuration for this particular disk. Every partition must have a unique number, or if 0 is specified, a unique label.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "description": "the PARTLABEL for the partition.",
+                      "type": "string"
+                    },
+                    "number": {
+                      "description": "the partition number, which dictates it’s position in the partition table (one-indexed). If zero, use the next available partition slot.",
+                      "type": "integer"
+                    },
+                    "size_mib": {
+                      "description": "the size of the partition (in mebibytes). If zero, the partition will be made as large as possible.",
+                      "type": "integer"
+                    },
+                    "start_mib": {
+                      "description": "the start of the partition (in mebibytes). If zero, the partition will be positioned at the start of the largest block available.",
+                      "type": "integer"
+                    },
+                    "type_guid": {
+                      "description": "the GPT partition type GUID. If omitted, the default will be 0FC63DAF-8483-4772-8E79-3D69D8477DE4 (Linux filesystem data).",
+                      "type": "string"
+                    },
+                    "guid": {
+                      "description": "the GPT unique partition GUID.",
+                      "type": "integer"
+                    },
+                    "wipe_partition_entry": {
+                      "description": "if true, Ignition will clobber an existing partition if it does not match the config. If false (default), Ignition will fail instead.",
+                      "type": "boolean"
+                    },
+                    "should_exist": {
+                      "description": "whether or not the partition with the specified number should exist. If omitted, it defaults to true. If false Ignition will either delete the specified partition or fail, depending on wipePartitionEntry. If false number must be specified and non-zero and label, start, size, guid, and typeGuid must all be omitted.",
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "device"
+            ]
+          }
+        },
+        "raid": {
+          "description": "the list of RAID arrays to be configured. Every RAID array must have a unique name.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "the name to use for the resulting md device.",
+                "type": "string"
+              },
+              "level": {
+                "description": "the redundancy level of the array (e.g. linear, raid1, raid5, etc.).",
+                "type": "string"
+              },
+              "devices": {
+                "description": "the list of devices (referenced by their absolute path) in the array.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "spares": {
+                "description": "the number of spares (if applicable) in the array.",
+                "type": "integer"
+              },
+              "options": {
+                "description": "any additional options to be passed to mdadm.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name",
+              "level",
+              "devices"
+            ]
+          }
+        },
+        "filesystems": {
+          "description": "the list of filesystems to be configured. device and format need to be specified. Every filesystem must have a unique device.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "device": {
+                "description": "the absolute path to the device. Devices are typically referenced by the /dev/disk/by-* symlinks.",
+                "type": "string"
+              },
+              "format": {
+                "description": "the filesystem format (ext4, btrfs, xfs, vfat, or swap).",
+                "type": "string",
+                "enum": [
+                  "ext4",
+                  "btrfs",
+                  "xfs",
+                  "vfat",
+                  "swap"
+                ]
+              },
+              "path": {
+                "description": "the mount-point of the filesystem while Ignition is running relative to where the root filesystem will be mounted. This is not necessarily the same as where it should be mounted in the real root, but it is encouraged to make it the same.",
+                "type": "string"
+              },
+              "wipe_filesystem": {
+                "description": "whether or not to wipe the device before filesystem creation, see the documentation on filesystems for more information. Defaults to false.",
+                "type": "boolean"
+              },
+              "label": {
+                "description": "the label of the filesystem.",
+                "type": "string"
+              },
+              "uuid": {
+                "description": "the uuid of the filesystem.",
+                "type": "string"
+              },
+              "options": {
+                "description": "any additional options to be passed to the format-specific mkfs utility.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "device",
+              "format"
+            ]
+          }
+        },
+        "files": {
+          "description": "the list of files to be written. Every file, directory and link must have a unique path.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "description": "the absolute path to the file.",
+                "type": "string"
+              },
+              "overwrite": {
+                "description": "whether to delete preexisting nodes at the path. contents must be specified if overwrite is true. Defaults to false.",
+                "type": "boolean"
+              },
+              "contents": {
+                "description": "options related to the contents of the file.",
+                "type": "object",
+                "properties": {
+                  "compression": {
+                    "description": "the type of compression used on the contents (null or gzip). Compression cannot be used with S3.",
+                    "type": "string"
+                  },
+                  "source": {
+                    "description": "he URL of the file contents. Supported schemes are http, https, tftp, s3, and data. When using http, it is advisable to use the verification option to ensure the contents haven’t been modified. If source is omitted and a regular file already exists at the path, Ignition will do nothing. If source is omitted and no file exists, an empty file will be created. Mutually exclusive with inline.",
+                    "type": "string",
+                    "enum": [
+                      "http",
+                      "https",
+                      "tftp",
+                      "s3",
+                      "data"
+                    ]
+                  },
+                  "inline": {
+                    "description": "the contents of the file. Mutually exclusive with source.",
+                    "type": "string"
+                  },
+                  "verification": {
+                    "description": "options related to the verification of the file contents.",
+                    "type": "object",
+                    "properties": {
+                      "hash": {
+                        "description": "the hash of the config, in the form <type>-<value> where type is sha512.",
+                        "type": "string",
+                        "pattern": "^sha512-.*$"
+                      }
+                    }
+                  }
+                }
+              },
+              "append": {
+                "description": "list of contents to be appended to the file. Follows the same stucture as contents",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "compression": {
+                      "description": "the type of compression used on the contents (null or gzip). Compression cannot be used with S3.",
+                      "type": "string"
+                    },
+                    "source": {
+                      "description": "the URL of the contents to append. Supported schemes are http, https, tftp, s3, and data. When using http, it is advisable to use the verification option to ensure the contents haven’t been modified. Mutually exclusive with inline.",
+                      "type": "string",
+                      "enum": [
+                        "http",
+                        "https",
+                        "tftp",
+                        "s3",
+                        "data"
+                      ]
+                    },
+                    "inline": {
+                      "description": "the contents to append. Mutually exclusive with source.",
+                      "type": "string"
+                    },
+                    "verification": {
+                      "description": "options related to the verification of the appended contents.",
+                      "type": "object",
+                      "properties": {
+                        "hash": {
+                          "description": "the hash of the config, in the form <type>-<value> where type is sha512.",
+                          "type": "string",
+                          "pattern": "^sha512-.*$"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "mode": {
+                "description": "the file’s permission mode. If not specified, the permission mode for files defaults to 0644 or the existing file’s permissions if overwrite is false, contents is unspecified, and a file already exists at the path.",
+                "type": "integer"
+              },
+              "user": {
+                "description": "specifies the file's owner.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "the user ID of the owner.",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "description": "the user name of the owner.",
+                    "type": "string"
+                  }
+                }
+              },
+              "group": {
+                "description": "specifies the group of the owner.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "the group ID of the owner.",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "description": "the group name of the owner.",
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        "directories": {
+          "description": "the list of directories to be created. Every file, directory, and link must have a unique path.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "description": "the absolute path to the directory.",
+                "type": "string"
+              },
+              "overwrite": {
+                "description": "whether to delete preexisting nodes at the path. If false and a directory already exists at the path, Ignition will only set its permissions. If false and a non-directory exists at that path, Ignition will fail. Defaults to false.",
+                "type": "boolean"
+              },
+              "mode": {
+                "description": "the directory’s permission mode. If not specified, the permission mode for directories defaults to 0755 or the mode of an existing directory if overwrite is false and a directory already exists at the path.",
+                "type": "integer"
+              },
+              "user": {
+                "description": "specifies the directory’s owner.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "the user ID of the owner.",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "description": "the user name of the owner.",
+                    "type": "string"
+                  }
+                }
+              },
+              "group": {
+                "description": "specifies the group of the owner.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "the group ID of the owner.",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "description": "the group name of the owner.",
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        },
+        "links": {
+          "description": "the list of links to be created. Every file, directory, and link must have a unique path.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "description": "the absolute path to the link",
+                "type": "string"
+              },
+              "overwrite": {
+                "description": "whether to delete preexisting nodes at the path. If overwrite is false and a matching link exists at the path, Ignition will only set the owner and group. Defaults to false.",
+                "type": "boolean"
+              },
+              "user": {
+                "description": "specifies the symbolic link’s owner.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "the user ID of the owner.",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "description": "the user name of the owner.",
+                    "type": "string"
+                  }
+                }
+              },
+              "group": {
+                "description": "specifies the group of the owner.",
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "the group ID of the owner.",
+                    "type": "integer"
+                  },
+                  "name": {
+                    "description": "the group name of the owner.",
+                    "type": "string"
+                  }
+                }
+              },
+              "target": {
+                "description": "the target path of the link",
+                "type": "string"
+              },
+              "hard": {
+                "description": "a symbolic link is created if this is false, a hard one if this is true.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path",
+              "target"
+            ]
+          }
+        }
+      }
+    },
+    "systemd": {
+      "description": "describes the desired state of the systemd units.",
+      "type": "object",
+      "properties": {
+        "units": {
+          "description": "the list of systemd units. Every unit must have a unique name.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "the name of the unit. This must be suffixed with a valid unit type (e.g. “thing.service”).",
+                "type": "string"
+              },
+              "enabled": {
+                "description": "whether or not the service shall be enabled. When true, the service is enabled. When false, the service is disabled. When omitted, the service is unmodified. In order for this to have any effect, the unit must have an install section.",
+                "type": "boolean"
+              },
+              "mask": {
+                "description": "whether or not the service shall be masked. When true, the service is masked by symlinking it to /dev/null.",
+                "type": "boolean"
+              },
+              "contents": {
+                "description": "the contents of the unit.",
+                "type": "string"
+              },
+              "dropins": {
+                "description": "the list of drop-ins for the unit. Every drop-in must have a unique name.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "the name of the drop-in. This must be suffixed with “.conf”.",
+                      "type": "string",
+                      "pattern": "^.*.conf$"
+                    },
+                    "contents": {
+                      "description": "the contents of the drop-in.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        }
+      }
+    },
+    "passwd": {
+      "description": "describes the desired additions to the passwd database.",
+      "type": "object",
+      "properties": {
+        "users": {
+          "description": "the list of accounts that shall exist. All users must have a unique name.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "the username for the account.",
+                "type": "string"
+              },
+              "uid": {
+                "description": "the user ID of the account.",
+                "type": "integer"
+              },
+              "password_hash": {
+                "description": "the hashed password for the account.",
+                "type": "string"
+              },
+              "ssh_authorized_keys": {
+                "description": "a list of SSH keys to be added as an SSH key fragment at .ssh/authorized_keys.d/ignition in the user’s home directory. All SSH keys must be unique.",
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "gecos": {
+                "description": "the GECOS field of the account.",
+                "type": "string"
+              },
+              "home_dir": {
+                "description": "the home directory of the account.",
+                "type": "string"
+              },
+              "no_create_home": {
+                "description": "whether or not to create the user’s home directory. This only has an effect if the account doesn’t exist yet.",
+                "type": "boolean"
+              },
+              "primary_group": {
+                "description": "the name of the primary group of the account.",
+                "type": "string"
+              },
+              "groups": {
+                "description": "the list of supplementary groups of the account.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "no_user_group": {
+                "description": "whether or not to create a group with the same name as the user. This only has an effect if the account doesn’t exist yet.",
+                "type": "boolean"
+              },
+              "no_log_init": {
+                "description": "whether or not to add the user to the lastlog and faillog databases. This only has an effect if the account doesn’t exist yet.",
+                "type": "boolean"
+              },
+              "shell": {
+                "description": "the login shell of the new account.",
+                "type": "string"
+              },
+              "system": {
+                "description": "whether or not this account should be a system account. This only has an effect if the account doesn’t exist yet.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        },
+        "groups": {
+          "description": "the list of groups to be added. All groups must have a unique name.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "the name of the group.",
+                "type": "string"
+              },
+              "gid": {
+                "description": "the group ID of the new group.",
+                "type": "integer"
+              },
+              "password_hash": {
+                "description": "the hashed password of the new group.",
+                "type": "string"
+              },
+              "system": {
+                "description": "whether or not the group should be a system group. This only has an effect if the group doesn’t exist yet.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "variant",
+    "version",
+    "ignition"
+  ]
+}

@@ -1,0 +1,233 @@
+<hr>
+<h2>title: Fedora CoreOS v1.0.0
+parent: Configuration specifications
+nav_order: 49</h2>
+<h1>Fedora CoreOS Specification v1.0.0</h1>
+<p>The Fedora CoreOS configuration is a YAML document conforming to the following specification, with <strong><em>italicized</em></strong> entries being optional:</p>
+<ul>
+<li><strong>variant</strong> (string): used to differentiate configs for different operating systems. Must be <code>fcos</code> for this specification.</li>
+<li><strong>version</strong> (string): the semantic version of the spec for this document. This document is for version <code>1.0.0</code> and generates Ignition configs with version <code>3.0.0</code>.</li>
+<li><strong>ignition</strong> (object): metadata about the configuration itself.
+<ul>
+<li><strong><em>config</em></strong> (objects): options related to the configuration.
+<ul>
+<li><strong><em>merge</em></strong> (list of objects): a list of the configs to be merged to the current config.
+<ul>
+<li><strong>source</strong> (string): the URL of the config. Supported schemes are <code>http</code>, <code>https</code>, <code>s3</code>, <code>tftp</code>, and <a href="https://tools.ietf.org/html/rfc2397"><code>data</code></a>. Note: When using <code>http</code>, it is advisable to use the verification option to ensure the contents haven't been modified.</li>
+<li><strong><em>verification</em></strong> (object): options related to the verification of the config.
+<ul>
+<li><strong><em>hash</em></strong> (string): the hash of the config, in the form <code>&lt;type&gt;-&lt;value&gt;</code> where type is <code>sha512</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>replace</em></strong> (object): the config that will replace the current.
+<ul>
+<li><strong>source</strong> (string): the URL of the config. Supported schemes are <code>http</code>, <code>https</code>, <code>s3</code>, <code>tftp</code>, and <a href="https://tools.ietf.org/html/rfc2397"><code>data</code></a>. Note: When using <code>http</code>, it is advisable to use the verification option to ensure the contents haven't been modified.</li>
+<li><strong><em>verification</em></strong> (object): options related to the verification of the config.
+<ul>
+<li><strong><em>hash</em></strong> (string): the hash of the config, in the form <code>&lt;type&gt;-&lt;value&gt;</code> where type is <code>sha512</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>timeouts</em></strong> (object): options relating to <code>http</code> timeouts when fetching files over <code>http</code> or <code>https</code>.
+<ul>
+<li><strong><em>http_response_headers</em></strong> (integer) the time to wait (in seconds) for the server's response headers (but not the body) after making a request. 0 indicates no timeout. Default is 10 seconds.</li>
+<li><strong><em>http_total</em></strong> (integer) the time limit (in seconds) for the operation (connection, request, and response), including retries. 0 indicates no timeout. Default is 0.</li>
+</ul>
+</li>
+<li><strong><em>security</em></strong> (object): options relating to network security.
+<ul>
+<li><strong><em>tls</em></strong> (object): options relating to TLS when fetching resources over <code>https</code>.
+<ul>
+<li><strong><em>certificate_authorities</em></strong> (list of objects): the list of additional certificate authorities (in addition to the system authorities) to be used for TLS verification when fetching over <code>https</code>. All certificate authorities must have a unique <code>source</code>.
+<ul>
+<li><strong>source</strong> (string): the URL of the certificate bundle (in PEM format). With Ignition ≥ 2.4.0, the bundle can contain multiple concatenated certificates. Supported schemes are <code>http</code>, <code>https</code>, <code>s3</code>, <code>tftp</code>, and <a href="https://tools.ietf.org/html/rfc2397"><code>data</code></a>. Note: When using <code>http</code>, it is advisable to use the verification option to ensure the contents haven't been modified.</li>
+<li><strong><em>verification</em></strong> (object): options related to the verification of the certificate.
+<ul>
+<li><strong><em>hash</em></strong> (string): the hash of the certificate, in the form <code>&lt;type&gt;-&lt;value&gt;</code> where type is sha512.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>storage</em></strong> (object): describes the desired state of the system's storage devices.
+<ul>
+<li><strong><em>disks</em></strong> (list of objects): the list of disks to be configured and their options. Every entry must have a unique <code>device</code>.
+<ul>
+<li><strong>device</strong> (string): the absolute path to the device. Devices are typically referenced by the <code>/dev/disk/by-*</code> symlinks.</li>
+<li><strong><em>wipe_table</em></strong> (boolean): whether or not the partition tables shall be wiped. When true, the partition tables are erased before any further manipulation. Otherwise, the existing entries are left intact.</li>
+<li><strong><em>partitions</em></strong> (list of objects): the list of partitions and their configuration for this particular disk. Every partition must have a unique <code>number</code>, or if 0 is specified, a unique <code>label</code>.
+<ul>
+<li><strong><em>label</em></strong> (string): the PARTLABEL for the partition.</li>
+<li><strong><em>number</em></strong> (integer): the partition number, which dictates it's position in the partition table (one-indexed). If zero, use the next available partition slot.</li>
+<li><strong><em>size_mib</em></strong> (integer): the size of the partition (in mebibytes). If zero, the partition will be made as large as possible.</li>
+<li><strong><em>start_mib</em></strong> (integer): the start of the partition (in mebibytes). If zero, the partition will be positioned at the start of the largest block available.</li>
+<li><strong><em>type_guid</em></strong> (string): the GPT <a href="http://en.wikipedia.org/wiki/GUID_Partition_Table#Partition_type_GUIDs">partition type GUID</a>. If omitted, the default will be 0FC63DAF-8483-4772-8E79-3D69D8477DE4 (Linux filesystem data).</li>
+<li><strong><em>guid</em></strong> (string): the GPT unique partition GUID.</li>
+<li><strong><em>wipe_partition_entry</em></strong> (boolean) if true, Ignition will clobber an existing partition if it does not match the config. If false (default), Ignition will fail instead.</li>
+<li><strong><em>should_exist</em></strong> (boolean) whether or not the partition with the specified <code>number</code> should exist. If omitted, it defaults to true. If false Ignition will either delete the specified partition or fail, depending on <code>wipePartitionEntry</code>. If false <code>number</code> must be specified and non-zero and <code>label</code>, <code>start</code>, <code>size</code>, <code>guid</code>, and <code>typeGuid</code> must all be omitted.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>raid</em></strong> (list of objects): the list of RAID arrays to be configured. Every RAID array must have a unique <code>name</code>.
+<ul>
+<li><strong>name</strong> (string): the name to use for the resulting md device.</li>
+<li><strong>level</strong> (string): the redundancy level of the array (e.g. linear, raid1, raid5, etc.).</li>
+<li><strong>devices</strong> (list of strings): the list of devices (referenced by their absolute path) in the array.</li>
+<li><strong><em>spares</em></strong> (integer): the number of spares (if applicable) in the array.</li>
+<li><strong><em>options</em></strong> (list of strings): any additional options to be passed to mdadm.</li>
+</ul>
+</li>
+<li><strong><em>filesystems</em></strong> (list of objects): the list of filesystems to be configured. <code>device</code> and <code>format</code> need to be specified. Every filesystem must have a unique <code>device</code>.
+<ul>
+<li><strong>device</strong> (string): the absolute path to the device. Devices are typically referenced by the <code>/dev/disk/by-*</code> symlinks.</li>
+<li><strong>format</strong> (string): the filesystem format (ext4, btrfs, xfs, vfat, or swap).</li>
+<li><strong><em>path</em></strong> (string): the mount-point of the filesystem while Ignition is running relative to where the root filesystem will be mounted. This is not necessarily the same as where it should be mounted in the real root, but it is encouraged to make it the same.</li>
+<li><strong><em>wipe_filesystem</em></strong> (boolean): whether or not to wipe the device before filesystem creation, see <a href="https://coreos.github.io/ignition/operator-notes/#filesystem-reuse-semantics">the documentation on filesystems</a> for more information. Defaults to false.</li>
+<li><strong><em>label</em></strong> (string): the label of the filesystem.</li>
+<li><strong><em>uuid</em></strong> (string): the uuid of the filesystem.</li>
+<li><strong><em>options</em></strong> (list of strings): any additional options to be passed to the format-specific mkfs utility.</li>
+</ul>
+</li>
+<li><strong><em>files</em></strong> (list of objects): the list of files to be written. Every file, directory and link must have a unique <code>path</code>.
+<ul>
+<li><strong>path</strong> (string): the absolute path to the file.</li>
+<li><strong><em>overwrite</em></strong> (boolean): whether to delete preexisting nodes at the path. <code>contents</code> must be specified if <code>overwrite</code> is true. Defaults to false.</li>
+<li><strong><em>contents</em></strong> (object): options related to the contents of the file.
+<ul>
+<li><strong><em>compression</em></strong> (string): the type of compression used on the contents (null or gzip). Compression cannot be used with S3.</li>
+<li><strong><em>source</em></strong> (string): the URL of the file contents. Supported schemes are <code>http</code>, <code>https</code>, <code>tftp</code>, <code>s3</code>, and <a href="https://tools.ietf.org/html/rfc2397"><code>data</code></a>. When using <code>http</code>, it is advisable to use the verification option to ensure the contents haven't been modified. If source is omitted and a regular file already exists at the path, Ignition will do nothing. If source is omitted and no file exists, an empty file will be created. Mutually exclusive with <code>inline</code>.</li>
+<li><strong><em>inline</em></strong> (string): the contents of the file. Mutually exclusive with <code>source</code>.</li>
+<li><strong><em>verification</em></strong> (object): options related to the verification of the file contents.
+<ul>
+<li><strong><em>hash</em></strong> (string): the hash of the config, in the form <code>&lt;type&gt;-&lt;value&gt;</code> where type is <code>sha512</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>append</em></strong> (list of objects): list of contents to be appended to the file. Follows the same stucture as <code>contents</code>
+<ul>
+<li><strong><em>compression</em></strong> (string): the type of compression used on the contents (null or gzip). Compression cannot be used with S3.</li>
+<li><strong><em>source</em></strong> (string): the URL of the contents to append. Supported schemes are <code>http</code>, <code>https</code>, <code>tftp</code>, <code>s3</code>, and <a href="https://tools.ietf.org/html/rfc2397"><code>data</code></a>. When using <code>http</code>, it is advisable to use the verification option to ensure the contents haven't been modified. Mutually exclusive with <code>inline</code>.</li>
+<li><strong><em>inline</em></strong> (string): the contents to append. Mutually exclusive with <code>source</code>.</li>
+<li><strong><em>verification</em></strong> (object): options related to the verification of the appended contents.
+<ul>
+<li><strong><em>hash</em></strong> (string): the hash of the config, in the form <code>&lt;type&gt;-&lt;value&gt;</code> where type is <code>sha512</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>mode</em></strong> (integer): the file's permission mode. If not specified, the permission mode for files defaults to 0644 or the existing file's permissions if <code>overwrite</code> is false, <code>contents</code> is unspecified, and a file already exists at the path.</li>
+<li><strong><em>user</em></strong> (object): specifies the file's owner.
+<ul>
+<li><strong><em>id</em></strong> (integer): the user ID of the owner.</li>
+<li><strong><em>name</em></strong> (string): the user name of the owner.</li>
+</ul>
+</li>
+<li><strong><em>group</em></strong> (object): specifies the group of the owner.
+<ul>
+<li><strong><em>id</em></strong> (integer): the group ID of the owner.</li>
+<li><strong><em>name</em></strong> (string): the group name of the owner.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>directories</em></strong> (list of objects): the list of directories to be created. Every file, directory, and link must have a unique <code>path</code>.
+<ul>
+<li><strong>path</strong> (string): the absolute path to the directory.</li>
+<li><strong><em>overwrite</em></strong> (boolean): whether to delete preexisting nodes at the path. If false and a directory already exists at the path, Ignition will only set its permissions. If false and a non-directory exists at that path, Ignition will fail. Defaults to false.</li>
+<li><strong><em>mode</em></strong> (integer): the directory's permission mode. If not specified, the permission mode for directories defaults to 0755 or the mode of an existing directory if <code>overwrite</code> is false and a directory already exists at the path.</li>
+<li><strong><em>user</em></strong> (object): specifies the directory's owner.
+<ul>
+<li><strong><em>id</em></strong> (integer): the user ID of the owner.</li>
+<li><strong><em>name</em></strong> (string): the user name of the owner.</li>
+</ul>
+</li>
+<li><strong><em>group</em></strong> (object): specifies the group of the owner.
+<ul>
+<li><strong><em>id</em></strong> (integer): the group ID of the owner.</li>
+<li><strong><em>name</em></strong> (string): the group name of the owner.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>links</em></strong> (list of objects): the list of links to be created. Every file, directory, and link must have a unique <code>path</code>.
+<ul>
+<li><strong>path</strong> (string): the absolute path to the link</li>
+<li><strong><em>overwrite</em></strong> (boolean): whether to delete preexisting nodes at the path. If overwrite is false and a matching link exists at the path, Ignition will only set the owner and group. Defaults to false.</li>
+<li><strong><em>user</em></strong> (object): specifies the symbolic link's owner.
+<ul>
+<li><strong><em>id</em></strong> (integer): the user ID of the owner.</li>
+<li><strong><em>name</em></strong> (string): the user name of the owner.</li>
+</ul>
+</li>
+<li><strong><em>group</em></strong> (object): specifies the group of the owner.
+<ul>
+<li><strong><em>id</em></strong> (integer): the group ID of the owner.</li>
+<li><strong><em>name</em></strong> (string): the group name of the owner.</li>
+</ul>
+</li>
+<li><strong>target</strong> (string): the target path of the link</li>
+<li><strong><em>hard</em></strong> (boolean): a symbolic link is created if this is false, a hard one if this is true.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>systemd</em></strong> (object): describes the desired state of the systemd units.
+<ul>
+<li><strong><em>units</em></strong> (list of objects): the list of systemd units. Every unit must have a unique <code>name</code>.
+<ul>
+<li><strong>name</strong> (string): the name of the unit. This must be suffixed with a valid unit type (e.g. &quot;thing.service&quot;).</li>
+<li><strong><em>enabled</em></strong> (boolean): whether or not the service shall be enabled. When true, the service is enabled. When false, the service is disabled. When omitted, the service is unmodified. In order for this to have any effect, the unit must have an install section.</li>
+<li><strong><em>mask</em></strong> (boolean): whether or not the service shall be masked. When true, the service is masked by symlinking it to <code>/dev/null</code>.</li>
+<li><strong><em>contents</em></strong> (string): the contents of the unit.</li>
+<li><strong><em>dropins</em></strong> (list of objects): the list of drop-ins for the unit. Every drop-in must have a unique <code>name</code>.
+<ul>
+<li><strong>name</strong> (string): the name of the drop-in. This must be suffixed with &quot;.conf&quot;.</li>
+<li><strong><em>contents</em></strong> (string): the contents of the drop-in.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong><em>passwd</em></strong> (object): describes the desired additions to the passwd database.
+<ul>
+<li><strong><em>users</em></strong> (list of objects): the list of accounts that shall exist. All users must have a unique <code>name</code>.
+<ul>
+<li><strong>name</strong> (string): the username for the account.</li>
+<li><strong><em>password_hash</em></strong> (string): the hashed password for the account.</li>
+<li><strong><em>ssh_authorized_keys</em></strong> (list of strings): a list of SSH keys to be added as an SSH key fragment at <code>.ssh/authorized_keys.d/ignition</code> in the user's home directory. All SSH keys must be unique.</li>
+<li><strong><em>uid</em></strong> (integer): the user ID of the account.</li>
+<li><strong><em>gecos</em></strong> (string): the GECOS field of the account.</li>
+<li><strong><em>home_dir</em></strong> (string): the home directory of the account.</li>
+<li><strong><em>no_create_home</em></strong> (boolean): whether or not to create the user's home directory. This only has an effect if the account doesn't exist yet.</li>
+<li><strong><em>primary_group</em></strong> (string): the name of the primary group of the account.</li>
+<li><strong><em>groups</em></strong> (list of strings): the list of supplementary groups of the account.</li>
+<li><strong><em>no_user_group</em></strong> (boolean): whether or not to create a group with the same name as the user. This only has an effect if the account doesn't exist yet.</li>
+<li><strong><em>no_log_init</em></strong> (boolean): whether or not to add the user to the lastlog and faillog databases. This only has an effect if the account doesn't exist yet.</li>
+<li><strong><em>shell</em></strong> (string): the login shell of the new account.</li>
+<li><strong><em>system</em></strong> (bool): whether or not this account should be a system account. This only has an effect if the account doesn't exist yet.</li>
+</ul>
+</li>
+<li><strong><em>groups</em></strong> (list of objects): the list of groups to be added. All groups must have a unique <code>name</code>.
+<ul>
+<li><strong>name</strong> (string): the name of the group.</li>
+<li><strong><em>gid</em></strong> (integer): the group ID of the new group.</li>
+<li><strong><em>password_hash</em></strong> (string): the hashed password of the new group.</li>
+<li><strong><em>system</em></strong> (bool): whether or not the group should be a system group. This only has an effect if the group doesn't exist yet.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
