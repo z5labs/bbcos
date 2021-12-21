@@ -38,7 +38,7 @@ func (b *Builder) Validate() *Builder {
 
 	variant := strings.ToLower(b.v.GetString("variant"))
 	version := strings.TrimPrefix(strings.ToLower(b.v.GetString("version")), "v")
-	filename := variant + "_v" + version + ".schema"
+	filename := variant + "_v" + version + ".schema.json"
 	spec, err := specs.Open(path.Join("spec", filename))
 	if err != nil {
 		panic(err)
