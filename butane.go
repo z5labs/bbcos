@@ -145,6 +145,46 @@ func NewPasswder(v *viper.Viper) *Passwder {
 	}
 }
 
+type User struct {
+	v *viper.Viper
+}
+
+func (p *Passwder) WithUser(f func(*User)) *Passwder {
+	users, ok := p.v.Get("users").([]map[string]interface{})
+	if !ok {
+		users = []map[string]interface{}{}
+		p.v.Set("users", users)
+	}
+
+	v := viper.New()
+	user := NewUser(v)
+	f(user)
+
+	users = append(users, v.AllSettings())
+	return p
+}
+
+func NewUser(v *viper.Viper) *User {
+	return &User{
+		v: v,
+	}
+}
+
+func (u *User) WithName(name string) *User {
+	u.v.Set("name", name)
+	return u
+}
+
+func (u *User) WithPasswordHash(hash string) *User {
+	u.v.Set("password_hash", hash)
+	return u
+}
+
+func (u *User) WithSSHAuthorizedKeys(keys []string) *User {
+	u.v.Set("ssh_authorized_keys", keys)
+	return u
+}
+
 type Kerneler struct {
 	v *viper.Viper
 }
