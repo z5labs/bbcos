@@ -715,7 +715,6 @@
   },
   "required": [
     "variant",
-    "version",
-    "ignition"
+    "version"
   ]
 }
