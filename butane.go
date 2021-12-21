@@ -156,7 +156,6 @@ func (p *Passwder) WithUser(f func(*User)) *Passwder {
 	users, ok := p.v.Get("users").([]map[string]interface{})
 	if !ok {
 		users = []map[string]interface{}{}
-		p.v.Set("users", users)
 	}
 
 	v := viper.New()
@@ -164,6 +163,7 @@ func (p *Passwder) WithUser(f func(*User)) *Passwder {
 	f(user)
 
 	users = append(users, v.AllSettings())
+	p.v.Set("users", users)
 	return p
 }
 
