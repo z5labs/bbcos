@@ -134,8 +134,11 @@ type Passwder struct {
 
 func (b *Builder) WithPasswder(f func(*Passwder)) *Builder {
 	b.assertKeyNotSet(PASSWD)
-	b.v.Set(PASSWD, map[string]interface{}{})
-	f(NewPasswder(b.v.Sub(PASSWD)))
+
+	v := viper.New()
+	f(NewPasswder(v))
+
+	b.v.Set(PASSWD, v.AllSettings())
 	return b
 }
 
