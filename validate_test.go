@@ -56,9 +56,7 @@ func TestCustomSchemaValidation(t *testing.T) {
 		panic(err)
 	}
 
-	New().
-		Variant("fcos").
-		Version("v1.0.0").
+	NewButaneConfig(FCOS, FCOS_1_0_0).
 		ValidateWithSpec(spec)
 }
 
@@ -71,7 +69,7 @@ func TestEmptyConfigValidation(t *testing.T) {
 		}
 	}()
 
-	b := New()
+	b := NewButaneConfig("", "")
 	b.Validate()
 }
 
@@ -84,8 +82,6 @@ func TestMissingRequiredIgnitionFieldValidation(t *testing.T) {
 		}
 	}()
 
-	New().
-		Variant("fcos").
-		Version("v1.0.0").
+	NewButaneConfig(FCOS, FCOS_1_0_0).
 		Validate()
 }

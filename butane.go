@@ -2,43 +2,68 @@
 package bbcos
 
 import (
-	"fmt"
 	"io"
+
+	"github.com/z5labs/bbcos/assert"
+	"github.com/z5labs/bbcos/ignition"
+	"github.com/z5labs/bbcos/passwd"
+	"github.com/z5labs/bbcos/storage"
+	"github.com/z5labs/bbcos/systemd"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )
 
+const cfgFile = "butane.yaml"
+
+// Variant
+type Variant string
+
 const (
-	STORAGE     = "storage"
-	IGNITION    = "ignition"
-	SYSTEMD     = "systemd"
-	PASSWD      = "passwd"
-	KERNEL_ARGS = "kernel_arguments"
-	BOOT_DEVICE = "boot_device"
+	FCOS      Variant = "fcos"
+	OPENSHIFT Variant = "openshift"
+	RHCOS     Variant = "rhcos"
 )
 
-// Builder provides a classic builder pattern for constructing Butane configs.
-type Builder struct {
+// Version
+type Version string
+
+const (
+	FCOS_1_0_0      Version = "1.0.0"
+	FCOS_1_1_0      Version = "1.1.0"
+	FCOS_1_2_0      Version = "1.2.0"
+	FCOS_1_3_0      Version = "1.3.0"
+	FCOS_1_4_0      Version = "1.4.0"
+	OPENSHIFT_4_8_0 Version = "4.8.0"
+	OPENSHIFT_4_9_0 Version = "4.9.0"
+	RHCOS_0_1_0     Version = "0.1.0"
+)
+
+type ButaneConfig struct {
 	v *viper.Viper
 }
 
-// Create a new Butane config builder
-func New() *Builder {
-	return &Builder{
+func NewButaneConfig(variant Variant, version Version, opts ...ButaneOption) ButaneConfig {
+	cfg := ButaneConfig{
 		v: viper.New(),
 	}
+	cfg.v.Set("version", string(version))
+	cfg.v.Set("variant", string(variant))
+
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	return cfg
 }
 
-const cfgFile = "butane.yaml"
-
-func (b *Builder) WriteTo(w io.Writer) (int64, error) {
+func (cfg ButaneConfig) WriteTo(w io.Writer) (int64, error) {
 	// Write config to an in-mem file since Viper doesn't currently
 	// support writing to an io.Writer directly
 	fs := afero.NewMemMapFs()
-	b.v.SetFs(fs)
-	b.v.SetConfigFile(cfgFile)
-	err := b.v.WriteConfig()
+	cfg.v.SetFs(fs)
+	cfg.v.SetConfigFile(cfgFile)
+	err := cfg.v.WriteConfig()
 	if err != nil {
 		panic(err)
 	}
@@ -55,179 +80,32 @@ func (b *Builder) WriteTo(w io.Writer) (int64, error) {
 	return n, nil
 }
 
-// Used to differentiate configs for different operating systems.
-func (b *Builder) Variant(v string) *Builder {
-	b.v.Set("variant", v)
-	return b
-}
+type ButaneOption func(ButaneConfig)
 
-// The semantic version of the spec used for validating the constructed config.
-func (b *Builder) Version(v string) *Builder {
-	b.v.Set("version", v)
-	return b
-}
-
-// Igniter provides a classic builder pattern for providing metadata
-// about the config itself.
-//
-type Igniter struct {
-	v *viper.Viper
-}
-
-// WithIgnition
-func (b *Builder) WithIgnition(f func(*Igniter)) *Builder {
-	b.assertKeyNotSet(IGNITION)
-	b.v.Set(IGNITION, map[string]interface{}{})
-	f(NewIgniter(b.v.Sub(IGNITION)))
-	return b
-}
-
-// NewIgniter creates a new Ingiter.
-func NewIgniter(v *viper.Viper) *Igniter {
-	return &Igniter{
-		v: v,
+func WithIgnition(i ignition.Ignition) ButaneOption {
+	return func(cfg ButaneConfig) {
+		assert.KeyNotSet(cfg.v, "ignition")
+		cfg.v.Set("ignition", i.AllSettings())
 	}
 }
 
-// Storager provides a classic builder pattern for describing the
-// desired state of the system’s storage devices.
-//
-type Storager struct {
-	v *viper.Viper
-}
-
-// WithStorage
-func (b *Builder) WithStorage(f func(*Storager)) *Builder {
-	b.assertKeyNotSet(STORAGE)
-	b.v.Set(STORAGE, map[string]interface{}{})
-	f(NewStorager(b.v.Sub(STORAGE)))
-	return b
-}
-
-// NewStorager creates a new Storager.
-func NewStorager(v *viper.Viper) *Storager {
-	return &Storager{
-		v: v,
+func WithStorage(s storage.Storage) ButaneOption {
+	return func(cfg ButaneConfig) {
+		assert.KeyNotSet(cfg.v, "storage")
+		cfg.v.Set("storage", s.AllSettings())
 	}
 }
 
-type Systemder struct {
-	v *viper.Viper
-}
-
-func (b *Builder) WithSystemd(f func(*Systemder)) *Builder {
-	b.assertKeyNotSet(SYSTEMD)
-	b.v.Set(SYSTEMD, map[string]interface{}{})
-	f(NewSystemder(b.v.Sub(SYSTEMD)))
-	return b
-}
-
-func NewSystemder(v *viper.Viper) *Systemder {
-	return &Systemder{
-		v: v,
+func WithSystemd(s systemd.Systemd) ButaneOption {
+	return func(cfg ButaneConfig) {
+		assert.KeyNotSet(cfg.v, "systemd")
+		cfg.v.Set("systemd", s.AllSettings())
 	}
 }
 
-type Passwder struct {
-	v *viper.Viper
-}
-
-func (b *Builder) WithPasswder(f func(*Passwder)) *Builder {
-	b.assertKeyNotSet(PASSWD)
-
-	v := viper.New()
-	f(NewPasswder(v))
-
-	b.v.Set(PASSWD, v.AllSettings())
-	return b
-}
-
-func NewPasswder(v *viper.Viper) *Passwder {
-	return &Passwder{
-		v: v,
+func WithPasswd(p passwd.Passwd) ButaneOption {
+	return func(cfg ButaneConfig) {
+		assert.KeyNotSet(cfg.v, "passwd")
+		cfg.v.Set("passwd", p.AllSettings())
 	}
-}
-
-type User struct {
-	v *viper.Viper
-}
-
-func (p *Passwder) WithUser(f func(*User)) *Passwder {
-	users, ok := p.v.Get("users").([]map[string]interface{})
-	if !ok {
-		users = []map[string]interface{}{}
-	}
-
-	v := viper.New()
-	user := NewUser(v)
-	f(user)
-
-	users = append(users, v.AllSettings())
-	p.v.Set("users", users)
-	return p
-}
-
-func NewUser(v *viper.Viper) *User {
-	return &User{
-		v: v,
-	}
-}
-
-func (u *User) WithName(name string) *User {
-	u.v.Set("name", name)
-	return u
-}
-
-func (u *User) WithPasswordHash(hash string) *User {
-	u.v.Set("password_hash", hash)
-	return u
-}
-
-func (u *User) WithSSHAuthorizedKeys(keys []string) *User {
-	u.v.Set("ssh_authorized_keys", keys)
-	return u
-}
-
-type Kerneler struct {
-	v *viper.Viper
-}
-
-func (b *Builder) WithKernelArgs(f func(*Kerneler)) *Builder {
-	b.assertKeyNotSet(KERNEL_ARGS)
-	b.v.Set(KERNEL_ARGS, map[string]interface{}{})
-	f(NewKerneler(b.v.Sub(KERNEL_ARGS)))
-	return b
-}
-
-func NewKerneler(v *viper.Viper) *Kerneler {
-	return &Kerneler{
-		v: v,
-	}
-}
-
-type Booter struct {
-	v *viper.Viper
-}
-
-func (b *Builder) WithBootDevice(f func(*Booter)) *Builder {
-	b.assertKeyNotSet(BOOT_DEVICE)
-	b.v.Set(BOOT_DEVICE, map[string]interface{}{})
-	f(NewBooter(b.v.Sub(BOOT_DEVICE)))
-	return b
-}
-
-func NewBooter(v *viper.Viper) *Booter {
-	return &Booter{
-		v: v,
-	}
-}
-
-func (b *Builder) assertKeyNotSet(key string) {
-	if hasKey := b.v.Get(key); hasKey != nil {
-		panicKeyAlreadySet(key)
-	}
-}
-
-func panicKeyAlreadySet(key string) {
-	panic(fmt.Sprintf("bbcos: %s has already been configured", key))
 }

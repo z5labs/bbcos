@@ -23,35 +23,35 @@ var specs embed.FS
 // The spec should be a JSON schema. For help formatting your spec,
 // please reference the out-of-box supported specs in the spec folder.
 //
-func (b *Builder) ValidateWithSpec(spec io.Reader) *Builder {
-	b.mustBeValidAgainstSpec("custom.schema", spec)
-	return b
+func (cfg ButaneConfig) ValidateWithSpec(spec io.Reader) ButaneConfig {
+	cfg.mustBeValidAgainstSpec("custom.schema", spec)
+	return cfg
 }
 
 // Validate is used to validate your configuration against a particaular spec
 // matching the set variation and version fields.
 //
-func (b *Builder) Validate() *Builder {
-	if !b.v.IsSet("variant") || !b.v.IsSet("version") {
+func (cfg ButaneConfig) Validate() ButaneConfig {
+	if !cfg.v.IsSet("variant") || !cfg.v.IsSet("version") {
 		panic("bbcos: both variation and version must be set before validating")
 	}
 
-	variant := strings.ToLower(b.v.GetString("variant"))
-	version := strings.TrimPrefix(strings.ToLower(b.v.GetString("version")), "v")
+	variant := strings.ToLower(cfg.v.GetString("variant"))
+	version := strings.TrimPrefix(strings.ToLower(cfg.v.GetString("version")), "v")
 	filename := variant + "_v" + version + ".schema.json"
 	spec, err := specs.Open(path.Join("spec", filename))
 	if err != nil {
 		panic(err)
 	}
 
-	b.mustBeValidAgainstSpec(filename, spec)
-	return b
+	cfg.mustBeValidAgainstSpec(filename, spec)
+	return cfg
 }
 
-func (b *Builder) mustBeValidAgainstSpec(specName string, spec io.Reader) {
+func (cfg ButaneConfig) mustBeValidAgainstSpec(specName string, spec io.Reader) {
 	schema := compileSchema(specName, spec)
-	cfg := b.jsonifyConfig()
-	if err := schema.Validate(cfg); err != nil {
+	jsonCfg := cfg.jsonifyConfig()
+	if err := schema.Validate(jsonCfg); err != nil {
 		panic(err)
 	}
 }
@@ -65,11 +65,11 @@ func compileSchema(filename string, spec io.Reader) *jsonschema.Schema {
 	return jsonschema.MustCompileString(filename, string(schemaB))
 }
 
-func (b *Builder) jsonifyConfig() interface{} {
+func (cfg ButaneConfig) jsonifyConfig() interface{} {
 	fs := afero.NewMemMapFs()
-	b.v.SetFs(fs)
-	b.v.SetConfigFile("butane.json")
-	err := b.v.WriteConfig()
+	cfg.v.SetFs(fs)
+	cfg.v.SetConfigFile("butane.json")
+	err := cfg.v.WriteConfig()
 	if err != nil {
 		panic(err)
 	}
@@ -79,10 +79,10 @@ func (b *Builder) jsonifyConfig() interface{} {
 		panic(err)
 	}
 
-	var cfg interface{}
+	var jsonCfg interface{}
 	d := json.NewDecoder(f)
-	if err = d.Decode(&cfg); err != nil {
+	if err = d.Decode(&jsonCfg); err != nil {
 		panic(err)
 	}
-	return cfg
+	return jsonCfg
 }
